@@ -1,30 +1,49 @@
 library qbrew;
 
+import 'dart:io';
 import 'dart:math';
 
 part './state.dart';
 part './qvector.dart';
 part './action.dart';
 part './environment.dart';
+part './logger.dart';
 
 enum ActionSelectionPolicy {
   epsilonGreedy,
   softMax,
 }
 
-void main(List<String> args) {
-  final QLAgent agent = QLAgent(env: Environment(), qTable: {});
+void main(List<String> args) async {
+  final Logger logger = Logger(monitoredFeatures: {
+    'prevState': (tl) => tl.previousState,
+    'chosenAction': (tl) => tl.chosenAction,
+    'oldQValue': (tl) => tl.oldQValue,
+    'newQValue': (tl) => tl.newQValue,
+    'rand': (tl) => tl.rand,
+    'reward': (tl) => tl.reward,
+  });
+
+  final QLAgent agent = QLAgent(
+    env: Environment(),
+    qTable: {},
+    logger: logger,
+  );
+
   for (int j = 0; j < 50; j++) {
     State state = State(currentPrice: 5, customers: 10);
     for (int i = 0; i < 20; i++) {
       state = agent.perform(state);
     }
   }
+
+  await logger.exportCSV('v001_1');
 }
 
 class QLAgent {
   final Map<QVector, double> qTable;
   final Environment env;
+  final Logger? logger;
   final Random _random = Random();
   static const double epsilon = 0.2;
   static const double gamma = 0.9;
@@ -33,6 +52,7 @@ class QLAgent {
   QLAgent({
     required this.env,
     required this.qTable,
+    required this.logger,
   });
 
   State perform(State state) {
@@ -47,20 +67,24 @@ class QLAgent {
       }
     }
 
+    bool? isRand;
     // select action using policy
     QVector selectAction(ActionSelectionPolicy policy) {
       if (policy == ActionSelectionPolicy.epsilonGreedy) {
         // epsilon cannot be const when it is decayed
         final double randNum = _random.nextDouble();
         if (randNum < epsilon) {
+          isRand = true;
           // find and perform a random action ("exploration")
           final int randIndex = _random.nextInt(qValuesOfState.length);
           return qValuesOfState.keys.elementAt(randIndex);
         } else {
+          isRand = false;
           // perform the action currently known to be optimal ("exploitation")
           return optimalQVector.key;
         }
       } else {
+        isRand = false;
         return optimalQVector.key;
       }
     }
@@ -85,12 +109,25 @@ class QLAgent {
     final double temporalDifference = newQValue - optimalQVector.value;
 
     // compute new Q-value
+    final double oldQValue = qValuesOfState[selectedQVector]!;
     final double updatedQValue =
         optimalQVector.value + alpha * temporalDifference;
 
     // update Q-value of chosen action and argset in Q-table
     print('          $updatedQValue');
     qTable[optimalQVector.key] = updatedQValue;
+    logger?.logTimestep(
+      TimestepLog(
+        timestep: env.timestep,
+        chosenAction: selectedAction,
+        newQValue: newQValue,
+        oldQValue: oldQValue,
+        optimalAction: optimalQVector.key.action,
+        previousState: state,
+        reward: reward,
+        rand: isRand ?? false,
+      ),
+    );
     return newState;
   }
 
