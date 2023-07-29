@@ -17,6 +17,7 @@ enum ActionSelectionPolicy {
 void main(List<String> args) async {
   const int totalEpochs = 1000; // 500
   const int totalEpisodes = 40; // 40
+  const int totalTimesteps = totalEpisodes * totalEpochs;
 
   final Logger logger = Logger(
     liveReporting: false,
@@ -30,8 +31,7 @@ void main(List<String> args) async {
       'reward': (tl) => tl.reward,
     },
     // only log for the final 10% of timesteps
-    loggingCondition: (tl) =>
-        tl.timestep > (0.9 * (totalEpisodes * totalEpochs)),
+    loggingCondition: (tl) => tl.timestep > (0.9 * totalTimesteps),
   );
 
   final QLAgent agent = QLAgent(
@@ -45,12 +45,12 @@ void main(List<String> args) async {
     for (int epiode = 0; epiode < totalEpisodes; epiode++) {
       state = agent.perform(state);
       // Decay the epsilon value
-      // QLAgent.epsilon -= 0.00003;
+      QLAgent.epsilon -= 0.00001;
       // if (stdin.readLineSync() == '\n') continue;
     }
   }
 
-  await logger.exportDataCSV('data_g2v4');
+  await logger.exportDataCSV('data_g2v5');
   // await logger.dumpQTableCSV('qtable_v1', agent.qTable);
 }
 
