@@ -2,10 +2,14 @@ part of qbrew;
 
 class Logger {
   final Map<String, dynamic Function(TimestepLog)> monitoredFeatures;
+  final bool Function(TimestepLog) loggingCondition;
   final Map<String, List> csvData;
+  final bool liveReporting;
 
   Logger({
     required this.monitoredFeatures,
+    required this.loggingCondition,
+    required this.liveReporting,
   }) : csvData = <String, List>{
           'timeStep': [],
           for (String key in monitoredFeatures.keys) key: [],
@@ -30,10 +34,15 @@ class Logger {
   }
 
   void logTimestep(TimestepLog timestepLog) {
-    for (String key in csvData.keys) {
-      final dynamic accessValue = monitoredFeatures[key]!(timestepLog);
-      csvData[key]!.add(accessValue);
+    if (loggingCondition(timestepLog)) {
+      for (String key in csvData.keys) {
+        final dynamic accessValue = monitoredFeatures[key]!(timestepLog);
+        csvData[key]!.add(accessValue);
+      }
     }
+    // if (liveReporting)
+    //  print(
+    //      '${env.timestep} | -> C:${env.customers} P:${env.drinkPrice} [${qValuesOfState[selectedQVector]}] (${optimalQVector.value})');
   }
 
   Future<String> exportDataCSV(String fileName, [String? directory]) async {

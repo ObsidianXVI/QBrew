@@ -18,15 +18,21 @@ void main(List<String> args) async {
   const int totalEpochs = 1000; // 500
   const int totalEpisodes = 40; // 40
 
-  final Logger logger = Logger(monitoredFeatures: {
-    'prevPrice': (tl) => tl.previousState.currentPrice,
-    'prevCustomers': (tl) => tl.previousState.customers,
-    'chosenAction': (tl) => tl.chosenAction.priceChange,
-    'oldQValue': (tl) => tl.oldQValue,
-    'newQValue': (tl) => tl.newQValue,
-    'rand': (tl) => tl.rand,
-    'reward': (tl) => tl.reward,
-  });
+  final Logger logger = Logger(
+    liveReporting: false,
+    monitoredFeatures: {
+      'prevPrice': (tl) => tl.previousState.currentPrice,
+      'prevCustomers': (tl) => tl.previousState.customers,
+      'chosenAction': (tl) => tl.chosenAction.priceChange,
+      'oldQValue': (tl) => tl.oldQValue,
+      'newQValue': (tl) => tl.newQValue,
+      'rand': (tl) => tl.rand,
+      'reward': (tl) => tl.reward,
+    },
+    // only log for the final 10% of timesteps
+    loggingCondition: (tl) =>
+        tl.timestep > (0.9 * (totalEpisodes * totalEpochs)),
+  );
 
   final QLAgent agent = QLAgent(
     env: Environment(),
@@ -44,7 +50,7 @@ void main(List<String> args) async {
     }
   }
 
-  await logger.exportDataCSV('data_g2v3');
+  await logger.exportDataCSV('data_g2v4');
   // await logger.dumpQTableCSV('qtable_v1', agent.qTable);
 }
 
@@ -103,8 +109,7 @@ class QLAgent {
 
     // perform action
     final double reward = env.computeReward(selectedAction);
-    print(
-        '${env.timestep} | -> C:${env.customers} P:${env.drinkPrice} [${qValuesOfState[selectedQVector]}] (${optimalQVector.value})');
+
     env.timestep += 1;
     final State newState = State(
       currentPrice: env.drinkPrice,
@@ -124,11 +129,6 @@ class QLAgent {
         optimalQVector.value + alpha * temporalDifference;
 
     // update Q-value of chosen action and argset in Q-table
-    print('          $updatedQValue');
-    if (qTable[optimalQVector.key] != 0) {
-      print(
-          'UPD [${qTable[optimalQVector.key]}]: ${qTable[optimalQVector.value]} => $updatedQValue ');
-    }
     qTable[optimalQVector.key] = updatedQValue;
     logger?.logTimestep(
       TimestepLog(
@@ -164,12 +164,6 @@ class QLAgent {
   double computeMaxFutureQValue(State newState) {
     final Map<QVector, double> qValuesOfState =
         fetchHistoricalQValues(newState);
-    print(
-      qValuesOfState.entries
-          .where((e) => e.value != 0)
-          .map((e) => e.key.toString())
-          .toList(),
-    );
     final double maxQValue = qValuesOfState.values.toList().reduce(max);
     return maxQValue;
   }
