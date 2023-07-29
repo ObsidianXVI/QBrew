@@ -1,8 +1,2 @@
-import 'package:qbrew/qbrew.dart';
+import 'package:qbrew/qbrew.dart' as qb;
 import 'package:test/test.dart';
-
-void main() {
-  test('calculate', () {
-    expect(calculate(), 42);
-  });
-}

@@ -26,4 +26,16 @@ class State {
     required this.currentPrice,
     required this.customers,
   });
+
+  @override
+  String toString() {
+    return "S<$currentPrice, $customers>";
+  }
+
+  @override
+  bool operator ==(Object? other) {
+    return (other is State) &&
+        other.currentPrice == currentPrice &&
+        other.customers == customers;
+  }
 }

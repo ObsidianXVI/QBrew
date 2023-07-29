@@ -15,9 +15,13 @@ enum ActionSelectionPolicy {
 }
 
 void main(List<String> args) async {
+  const int totalEpochs = 1000; // 500
+  const int totalEpisodes = 40; // 40
+
   final Logger logger = Logger(monitoredFeatures: {
-    'prevState': (tl) => tl.previousState,
-    'chosenAction': (tl) => tl.chosenAction,
+    'prevPrice': (tl) => tl.previousState.currentPrice,
+    'prevCustomers': (tl) => tl.previousState.customers,
+    'chosenAction': (tl) => tl.chosenAction.priceChange,
     'oldQValue': (tl) => tl.oldQValue,
     'newQValue': (tl) => tl.newQValue,
     'rand': (tl) => tl.rand,
@@ -30,14 +34,18 @@ void main(List<String> args) async {
     logger: logger,
   );
 
-  for (int j = 0; j < 50; j++) {
+  for (int epoch = 0; epoch < totalEpochs; epoch++) {
     State state = State(currentPrice: 5, customers: 10);
-    for (int i = 0; i < 20; i++) {
+    for (int epiode = 0; epiode < totalEpisodes; epiode++) {
       state = agent.perform(state);
+      // Decay the epsilon value
+      // QLAgent.epsilon -= 0.00003;
+      // if (stdin.readLineSync() == '\n') continue;
     }
   }
 
-  await logger.exportCSV('v001_1');
+  await logger.exportDataCSV('data_g2v3');
+  // await logger.dumpQTableCSV('qtable_v1', agent.qTable);
 }
 
 class QLAgent {
@@ -45,7 +53,7 @@ class QLAgent {
   final Environment env;
   final Logger? logger;
   final Random _random = Random();
-  static const double epsilon = 0.2;
+  static double epsilon = 0.6;
   static const double gamma = 0.9;
   static const double alpha = 0.2;
 
@@ -103,7 +111,9 @@ class QLAgent {
       customers: env.customers,
     );
     final double maxFutureValue = computeMaxFutureQValue(newState);
+    // print('MFV: $maxFutureValue');
     final double newQValue = reward + gamma * maxFutureValue;
+    // print('NQV: $newQValue');
 
     // calculate temporal difference
     final double temporalDifference = newQValue - optimalQVector.value;
@@ -115,6 +125,10 @@ class QLAgent {
 
     // update Q-value of chosen action and argset in Q-table
     print('          $updatedQValue');
+    if (qTable[optimalQVector.key] != 0) {
+      print(
+          'UPD [${qTable[optimalQVector.key]}]: ${qTable[optimalQVector.value]} => $updatedQValue ');
+    }
     qTable[optimalQVector.key] = updatedQValue;
     logger?.logTimestep(
       TimestepLog(
@@ -134,10 +148,12 @@ class QLAgent {
   Map<QVector, double> fetchHistoricalQValues(State state) {
     final Map<QVector, double> qvalues = {};
     for (Action action in state.actionsAvailable) {
-      final QVector qv = QVector(action: action, state: state);
-      if (qTable.containsKey(qv)) {
-        qvalues[qv] = qTable[qv]!;
+      final MapEntry<QVector, double>? qVect = qTable.qVectorFor(action, state);
+      if (qVect != null) {
+        qvalues.addEntries([qVect]);
       } else {
+        final QVector qv = QVector(action: action, state: state);
+        qTable.addAll({qv: 0});
         qTable[qv] = 0;
         qvalues[qv] = 0;
       }
@@ -148,7 +164,24 @@ class QLAgent {
   double computeMaxFutureQValue(State newState) {
     final Map<QVector, double> qValuesOfState =
         fetchHistoricalQValues(newState);
+    print(
+      qValuesOfState.entries
+          .where((e) => e.value != 0)
+          .map((e) => e.key.toString())
+          .toList(),
+    );
     final double maxQValue = qValuesOfState.values.toList().reduce(max);
     return maxQValue;
+  }
+}
+
+extension on Map<QVector, double> {
+  MapEntry<QVector, double>? qVectorFor(Action a, State s) {
+    for (MapEntry<QVector, double> entry in entries) {
+      if (entry.key.action == a && entry.key.state == s) {
+        return entry;
+      }
+    }
+    return null;
   }
 }

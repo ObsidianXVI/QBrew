@@ -13,6 +13,8 @@ class Logger {
     init();
   }
 
+  static const String delimiter = ';';
+
   void resetAndReinitialise() {
     csvData.clear();
     csvData.addAll(<String, List>{
@@ -34,8 +36,7 @@ class Logger {
     }
   }
 
-  Future<String> exportCSV(String fileName, [String? directory]) async {
-    const String delimiter = ';';
+  Future<String> exportDataCSV(String fileName, [String? directory]) async {
     directory ??= './data';
     await Directory(directory).create();
     final File dataFile = await File("$directory/$fileName.csv").create();
@@ -50,6 +51,33 @@ class Logger {
       }
       data.add(rowData.join(delimiter));
     }
+    dataFile.writeAsString(data.join('\n'));
+    return dataFile.path;
+  }
+
+  Future<String> dumpQTableCSV(
+    String fileName,
+    Map<QVector, double> qTable, [
+    String? directory,
+  ]) async {
+    directory ??= './data';
+    await Directory(directory).create();
+    final File dataFile = await File("$directory/$fileName.csv").create();
+
+    final List<String> headers = ['action', 'state', 'qvalue'];
+    final int rowCount = qTable.length;
+    final List<String> data = [];
+    data.add(headers.join(delimiter));
+
+    for (int i = 0; i < rowCount; i++) {
+      final MapEntry<QVector, double> entry = qTable.entries.elementAt(i);
+      data.add([
+        entry.key.action.priceChange,
+        entry.key.state,
+        entry.value,
+      ].join(delimiter));
+    }
+
     dataFile.writeAsString(data.join('\n'));
     return dataFile.path;
   }

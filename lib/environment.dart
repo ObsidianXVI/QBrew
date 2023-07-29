@@ -11,6 +11,8 @@ class Environment {
     return customers * drinkPrice;
   }
 
+  // use new
+  // f(x)=-0.01x^{2}+1.1x+3
   int computeCustomerCount(double currentPrice) =>
       (16 - 2 * currentPrice).round();
 }
