@@ -101,7 +101,7 @@ class QLAgent {
           // perform the action currently known to be optimal ("exploitation")
           return optimalQVector.key;
         }
-      } else {
+      } else if (actionSelectionPolicy == ActionSelectionPolicy.softMax) {
         isRand = false;
         final Map<QVector, Range> probabilityDistribution = {};
         double sumOfExponentials =
@@ -119,6 +119,8 @@ class QLAgent {
             return distribution.key;
           }
         }
+        return optimalQVector.key;
+      } else {
         return optimalQVector.key;
       }
     }
