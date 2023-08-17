@@ -39,7 +39,7 @@ void main(List<String> args) async {
     env: Environment(),
     qTable: {},
     logger: logger,
-    actionSelectionPolicy: ActionSelectionPolicy.softMax,
+    actionSelectionPolicy: ActionSelectionPolicy.epsilonGreedy,
   );
 
   final State initialState = State(currentPrice: 5, customers: 10);
