@@ -15,24 +15,25 @@ enum ActionSelectionPolicy {
 }
 
 void main(List<String> args) async {
-  const int totalEpochs = 1000; // 500
+  const int totalEpochs = 1000; // 1000
   const int totalEpisodes = 40; // 40
   const int totalTimesteps = totalEpisodes * totalEpochs;
 
   final Logger logger = Logger(
-      liveReporting: false,
-      monitoredFeatures: {
-        'prevPrice': (tl) => tl.previousState.currentPrice,
-        'prevCustomers': (tl) => tl.previousState.customers,
-        'chosenAction': (tl) => tl.chosenAction.priceChange,
-        'oldQValue': (tl) => tl.oldQValue,
-        'newQValue': (tl) => tl.newQValue,
-        'rand': (tl) => tl.rand,
-        'reward': (tl) => tl.reward,
-      },
-      // only log for the final 10% of timesteps
-      loggingCondition: (tl) => true //tl.timestep > (0.9 * totalTimesteps),
-      );
+    liveReporting: false,
+    monitoredFeatures: {
+      'prevPrice': (tl) => tl.previousState.currentPrice,
+      'prevCustomers': (tl) => tl.previousState.customers,
+      'chosenAction': (tl) => tl.chosenAction.priceChange,
+      'oldQValue': (tl) => tl.oldQValue,
+      'newQValue': (tl) => tl.newQValue,
+      'rand': (tl) => tl.rand,
+      'reward': (tl) => tl.reward,
+    },
+    // only log for the final 10% of timesteps
+    // tl.timestep > (0.9 * totalTimesteps)
+    loggingCondition: (tl) => true,
+  );
 
   final QLAgent agent = QLAgent(
     env: Environment(),
@@ -51,7 +52,7 @@ void main(List<String> args) async {
     }
   }
 
-  await logger.exportDataCSV('sm_g0_v0');
+  await logger.exportDataCSV('eg_g1_v0');
   // await logger.dumpQTableCSV('qtable_v1', agent.qTable);
 }
 
