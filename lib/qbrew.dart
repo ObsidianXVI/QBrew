@@ -7,53 +7,67 @@ part './state.dart';
 part './qvector.dart';
 part './action.dart';
 part './environment.dart';
+part './models.dart';
 part './logger.dart';
+part './agents.dart';
 
 enum ActionSelectionPolicy {
   epsilonGreedy,
   softMax,
 }
 
+const int totalEpochs = 4;
+const int epochSize = 1000; // 1000
+const int episodeSize = 40; // 40
+const int totalTimesteps = episodeSize * epochSize * totalEpochs;
+const double epsilonDecayRate = -0.000001;
+
 void main(List<String> args) async {
-  const int totalEpochs = 1000; // 1000
-  const int totalEpisodes = 40; // 40
-  const int totalTimesteps = totalEpisodes * totalEpochs;
+  print(totalTimesteps);
 
   final Logger logger = Logger(
     liveReporting: false,
-    monitoredFeatures: {
-      'prevPrice': (tl) => tl.previousState.currentPrice,
-      'prevCustomers': (tl) => tl.previousState.customers,
-      'chosenAction': (tl) => tl.chosenAction.priceChange,
-      'oldQValue': (tl) => tl.oldQValue,
-      'newQValue': (tl) => tl.newQValue,
-      'rand': (tl) => tl.rand,
-      'reward': (tl) => tl.reward,
-    },
-    // only log for the final 10% of timesteps
-    // tl.timestep > (0.9 * totalTimesteps)
+    monitoredFeatures: {'reward': (tl) => tl.reward},
     loggingCondition: (tl) => true,
   );
 
-  final QLAgent agent = QLAgent(
-    env: Environment(),
-    qTable: {},
-    logger: logger,
-    actionSelectionPolicy: ActionSelectionPolicy.epsilonGreedy,
+  final Environment env = Environment(
+    customerCountFunctions: [
+      linear_1,
+      quadratic_1,
+      linear_2,
+      cubic_1,
+    ],
+    noiseAdjustments: [-3, -2, -1, 1, 2, 3],
+    noisinessFactor: 0.8,
   );
+  final QLAgent agent = softmaxAgent1(env, logger);
 
   final State initialState = State(currentPrice: 5, customers: 10);
   for (int epoch = 0; epoch < totalEpochs; epoch++) {
-    State state = initialState;
-    for (int epiode = 0; epiode < totalEpisodes; epiode++) {
-      state = agent.perform(state);
-      // Decay the epsilon value
-      QLAgent.epsilon -= 0.00001;
+    env.currentFn = env.customerCountFunctions[epoch];
+    for (int episode = 0; episode < epochSize; episode++) {
+      State state = initialState;
+      for (int timestep = 0; timestep < episodeSize; timestep++) {
+        state = agent.perform(state);
+        // Decay the epsilon value
+        if (agent.epsilon - epsilonDecayRate >= 0) {
+          agent.epsilon -= epsilonDecayRate;
+        } else {
+          agent.epsilon = 0;
+        }
+      }
     }
   }
-
-  await logger.exportDataCSV('eg_g1_v0');
-  // await logger.dumpQTableCSV('qtable_v1', agent.qTable);
+  await logger.exportFullTestArchive(
+    'SM_D1_3',
+    env: env,
+    agent: agent,
+    totalEpochs: totalEpochs,
+    epochSize: epochSize,
+    episodeSize: episodeSize,
+    epsilonDecayRate: epsilonDecayRate,
+  );
 }
 
 class QLAgent {
@@ -62,16 +76,20 @@ class QLAgent {
   final Logger? logger;
   final Random _random = Random();
   final ActionSelectionPolicy actionSelectionPolicy;
-  static double epsilon = 0.6;
-  static const double gamma = 0.9;
-  static const double alpha = 0.2;
+  final double initialEpsilon;
+  double epsilon;
+  final double gamma;
+  final double alpha;
 
   QLAgent({
     required this.env,
     required this.qTable,
     required this.logger,
     required this.actionSelectionPolicy,
-  });
+    required this.epsilon,
+    required this.gamma,
+    required this.alpha,
+  }) : initialEpsilon = epsilon;
 
   State perform(State state) {
     // fetch available  Q-values
@@ -133,6 +151,7 @@ class QLAgent {
     final double reward = env.computeReward(selectedAction);
 
     env.timestep += 1;
+
     final State newState = State(
       currentPrice: env.drinkPrice,
       customers: env.customers,

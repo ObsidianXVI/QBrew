@@ -1,13 +1,20 @@
 part of qbrew;
 
-const double noisinessFactor = 0.4;
-const List<int> noiseAdjustments = [-3, -2, -1, 1, 2, 3];
-
 class Environment {
+  final double noisinessFactor;
+  final List<int> noiseAdjustments;
   final Random _random = Random();
+  List<CustomerCountFunction> customerCountFunctions;
+  CustomerCountFunction currentFn;
   double drinkPrice = 5;
   int customers = 10;
   int timestep = 0;
+
+  Environment({
+    required this.customerCountFunctions,
+    required this.noiseAdjustments,
+    required this.noisinessFactor,
+  }) : currentFn = customerCountFunctions.first;
 
   double computeReward(Action action) {
     drinkPrice = drinkPrice + action.priceChange;
@@ -15,10 +22,8 @@ class Environment {
     return customers * drinkPrice;
   }
 
-  // use new
-  // f(x)=-0.01x^{2}+1.1x+3
   int computeCustomerCount(double currentPrice) {
-    final int newCustomerCount = (16 - 2 * currentPrice).round();
+    final int newCustomerCount = currentFn(currentPrice);
     final double randDbl = _random.nextDouble();
     if (randDbl > noisinessFactor) {
       return newCustomerCount;

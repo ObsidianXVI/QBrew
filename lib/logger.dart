@@ -64,6 +64,68 @@ class Logger {
     return dataFile.path;
   }
 
+  Future<String> exportRangeCSV(String fileName, [String? directory]) async {
+    directory ??= './data';
+    await Directory(directory).create();
+    final File dataFile = await File("$directory/$fileName.csv").create();
+    final List<String> headers = csvData.keys.toList();
+    final int rowCount = csvData['timeStep']!.length;
+    final List<String> data = [];
+    data.add(headers.join(delimiter));
+    for (int i = 0; i < rowCount; i++) {
+      final List rowData = [];
+      for (String header in headers) {
+        rowData.add(csvData[header]![i]);
+      }
+      data.add(rowData.join(delimiter));
+    }
+    dataFile.writeAsString(data.join('\n'));
+    return dataFile.path;
+  }
+
+  Future<void> exportFullTestArchive(
+    String label, {
+    String? directory,
+    required Environment env,
+    required QLAgent agent,
+    required int totalEpochs,
+    required int epochSize,
+    required int episodeSize,
+    required double epsilonDecayRate,
+  }) async {
+    directory ??= './data/archives/$label';
+    await Directory(directory).create();
+    await exportDataCSV('data', directory);
+    await exportRangeCSV('range', directory);
+    final File configsFile = await File("$directory/configs.txt").create();
+    configsFile.writeAsString("""Name: $label
+
+############ Configuration
+=== Execution
+totalEpochs: $totalEpochs
+epochSize: $epochSize
+episodeSize: $episodeSize
+epsilonDecayRate: $epsilonDecayRate
+
+=== Agent
+policy: ${agent.actionSelectionPolicy}
+alpha: ${agent.alpha}
+gamma: ${agent.gamma}
+epsilon: ${agent.initialEpsilon}
+
+=== Environment
+Noise adjustments: ${env.noiseAdjustments}
+Noisiness factor: ${env.noisinessFactor}
+
+############ Results
+=== Risk
+CVaR: 
+
+=== Responsiveness
+TTC: 
+""");
+  }
+
   Future<String> dumpQTableCSV(
     String fileName,
     Map<QVector, double> qTable, [
