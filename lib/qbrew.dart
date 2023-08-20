@@ -27,7 +27,7 @@ void main(List<String> args) async {
   print(totalTimesteps);
 
   final Dataset dataset1 = Dataset(
-    label: 'SM_D1',
+    label: 'EG_D1',
   );
 
   await dataset1.batchRun(
@@ -42,7 +42,7 @@ void main(List<String> args) async {
       noiseAdjustments: [-3, -2, -1, 1, 2, 3],
       noisinessFactor: 0.8,
     ),
-    createAgent: (Environment env, Logger logger) => softmaxAgent1(env, logger),
+    createAgent: (Environment env, Logger logger) => epsilonAgent1(env, logger),
     createLogger: () => Logger(
       liveReporting: false,
       monitoredFeatures: {'reward': (tl) => tl.reward},
