@@ -24,10 +24,8 @@ const int totalTimesteps = episodeSize * epochSize * totalEpochs;
 const double epsilonDecayRate = -0.000001;
 
 void main(List<String> args) async {
-  print(totalTimesteps);
-
   final Dataset dataset1 = Dataset(
-    label: 'EG_D1',
+    label: 'SM_D2',
   );
 
   await dataset1.batchRun(
@@ -35,14 +33,14 @@ void main(List<String> args) async {
     createEnv: () => Environment(
       customerCountFunctions: [
         linear_1,
-        quadratic_1,
         linear_2,
+        quadratic_1,
         cubic_1,
       ],
       noiseAdjustments: [-3, -2, -1, 1, 2, 3],
       noisinessFactor: 0.8,
     ),
-    createAgent: (Environment env, Logger logger) => epsilonAgent1(env, logger),
+    createAgent: (Environment env, Logger logger) => softmaxAgent1(env, logger),
     createLogger: () => Logger(
       liveReporting: false,
       monitoredFeatures: {'reward': (tl) => tl.reward},

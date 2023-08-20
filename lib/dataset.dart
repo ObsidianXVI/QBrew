@@ -57,7 +57,6 @@ class Dataset {
       rangeCSV['rmin']!.add(rewardsAtTimestep.reduce(min));
       rangeCSV['ravg']!.add(
           rewardsAtTimestep.reduce((a, b) => a + b) / rewardsAtTimestep.length);
-      if (ts < 10) print(rangeCSV);
     }
 
     final File dataFile = await File("$dirPath/range.csv").create();
