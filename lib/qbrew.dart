@@ -10,6 +10,7 @@ part './environment.dart';
 part './models.dart';
 part './logger.dart';
 part './agents.dart';
+part './dataset.dart';
 
 enum ActionSelectionPolicy {
   epsilonGreedy,
@@ -25,49 +26,32 @@ const double epsilonDecayRate = -0.000001;
 void main(List<String> args) async {
   print(totalTimesteps);
 
-  final Logger logger = Logger(
-    liveReporting: false,
-    monitoredFeatures: {'reward': (tl) => tl.reward},
-    loggingCondition: (tl) => true,
+  final Dataset dataset1 = Dataset(
+    label: 'SM_D1',
   );
 
-  final Environment env = Environment(
-    customerCountFunctions: [
-      linear_1,
-      quadratic_1,
-      linear_2,
-      cubic_1,
-    ],
-    noiseAdjustments: [-3, -2, -1, 1, 2, 3],
-    noisinessFactor: 0.8,
+  await dataset1.batchRun(
+    count: 3,
+    createEnv: () => Environment(
+      customerCountFunctions: [
+        linear_1,
+        quadratic_1,
+        linear_2,
+        cubic_1,
+      ],
+      noiseAdjustments: [-3, -2, -1, 1, 2, 3],
+      noisinessFactor: 0.8,
+    ),
+    createAgent: (Environment env, Logger logger) => softmaxAgent1(env, logger),
+    createLogger: () => Logger(
+      liveReporting: false,
+      monitoredFeatures: {'reward': (tl) => tl.reward},
+      loggingCondition: (tl) => true,
+    ),
   );
-  final QLAgent agent = softmaxAgent1(env, logger);
+  await dataset1.exportRangeCSV();
 
-  final State initialState = State(currentPrice: 5, customers: 10);
-  for (int epoch = 0; epoch < totalEpochs; epoch++) {
-    env.currentFn = env.customerCountFunctions[epoch];
-    for (int episode = 0; episode < epochSize; episode++) {
-      State state = initialState;
-      for (int timestep = 0; timestep < episodeSize; timestep++) {
-        state = agent.perform(state);
-        // Decay the epsilon value
-        if (agent.epsilon - epsilonDecayRate >= 0) {
-          agent.epsilon -= epsilonDecayRate;
-        } else {
-          agent.epsilon = 0;
-        }
-      }
-    }
-  }
-  await logger.exportFullTestArchive(
-    'SM_D1_3',
-    env: env,
-    agent: agent,
-    totalEpochs: totalEpochs,
-    epochSize: epochSize,
-    episodeSize: episodeSize,
-    epsilonDecayRate: epsilonDecayRate,
-  );
+  // await logger.exportFullTestArchive('SM_D1_3', env: env, agent: agent);
 }
 
 class QLAgent {
@@ -90,6 +74,25 @@ class QLAgent {
     required this.gamma,
     required this.alpha,
   }) : initialEpsilon = epsilon;
+
+  void start() {
+    final State initialState = State(currentPrice: 5, customers: 10);
+    for (int epoch = 0; epoch < totalEpochs; epoch++) {
+      env.currentFn = env.customerCountFunctions[epoch];
+      for (int episode = 0; episode < epochSize; episode++) {
+        State state = initialState;
+        for (int timestep = 0; timestep < episodeSize; timestep++) {
+          state = perform(state);
+          // Decay the epsilon value
+          if (epsilon - epsilonDecayRate >= 0) {
+            epsilon -= epsilonDecayRate;
+          } else {
+            epsilon = 0;
+          }
+        }
+      }
+    }
+  }
 
   State perform(State state) {
     // fetch available  Q-values

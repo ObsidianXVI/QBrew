@@ -19,14 +19,6 @@ class Logger {
 
   static const String delimiter = ';';
 
-  void resetAndReinitialise() {
-    csvData.clear();
-    csvData.addAll(<String, List>{
-      'timeStep': [],
-      for (String key in monitoredFeatures.keys) key: []
-    });
-  }
-
   void init() {
     monitoredFeatures.addAll({
       'timeStep': (TimestepLog tl) => tl.timestep,
@@ -45,10 +37,12 @@ class Logger {
     //      '${env.timestep} | -> C:${env.customers} P:${env.drinkPrice} [${qValuesOfState[selectedQVector]}] (${optimalQVector.value})');
   }
 
-  Future<String> exportDataCSV(String fileName, [String? directory]) async {
+  Future<Map<String, List>> exportDataCSV(String fileName,
+      [String? directory]) async {
     directory ??= './data';
     await Directory(directory).create();
-    final File dataFile = await File("$directory/$fileName.csv").create();
+    final File dataFile =
+        await File("$directory/$fileName.csv").create(recursive: true);
     final List<String> headers = csvData.keys.toList();
     final int rowCount = csvData['timeStep']!.length;
     final List<String> data = [];
@@ -61,26 +55,7 @@ class Logger {
       data.add(rowData.join(delimiter));
     }
     dataFile.writeAsString(data.join('\n'));
-    return dataFile.path;
-  }
-
-  Future<String> exportRangeCSV(String fileName, [String? directory]) async {
-    directory ??= './data';
-    await Directory(directory).create();
-    final File dataFile = await File("$directory/$fileName.csv").create();
-    final List<String> headers = csvData.keys.toList();
-    final int rowCount = csvData['timeStep']!.length;
-    final List<String> data = [];
-    data.add(headers.join(delimiter));
-    for (int i = 0; i < rowCount; i++) {
-      final List rowData = [];
-      for (String header in headers) {
-        rowData.add(csvData[header]![i]);
-      }
-      data.add(rowData.join(delimiter));
-    }
-    dataFile.writeAsString(data.join('\n'));
-    return dataFile.path;
+    return csvData;
   }
 
   Future<void> exportFullTestArchive(
@@ -88,16 +63,22 @@ class Logger {
     String? directory,
     required Environment env,
     required QLAgent agent,
-    required int totalEpochs,
-    required int epochSize,
-    required int episodeSize,
-    required double epsilonDecayRate,
   }) async {
     directory ??= './data/archives/$label';
     await Directory(directory).create();
     await exportDataCSV('data', directory);
-    await exportRangeCSV('range', directory);
-    final File configsFile = await File("$directory/configs.txt").create();
+    await exportConfigsFile(label,
+        directory: directory, env: env, agent: agent);
+  }
+
+  static Future<void> exportConfigsFile(
+    String label, {
+    String? directory,
+    required Environment env,
+    required QLAgent agent,
+  }) async {
+    final File configsFile =
+        await File("$directory/configs.txt").create(recursive: true);
     configsFile.writeAsString("""Name: $label
 
 ############ Configuration
