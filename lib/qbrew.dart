@@ -25,7 +25,7 @@ const double epsilonDecayRate = -0.000001;
 
 void main(List<String> args) async {
   final Dataset dataset1 = Dataset(
-    label: 'EG_D3',
+    label: 'SM_D4',
   );
 
   await dataset1.batchRun(
@@ -33,8 +33,8 @@ void main(List<String> args) async {
     createEnv: () => Environment(
       customerCountFunctions: [
         linear_1,
-        linear_2,
         quadratic_1,
+        linear_2,
         cubic_1,
       ],
       noiseAdjustments: [-3, -2, -1, 1, 2, 3],

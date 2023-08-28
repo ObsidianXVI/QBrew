@@ -17,3 +17,20 @@ def normaliseLossDistr(lossDistr: list[float]) -> list[float]:
 
 def findMeanSquaredError(lossDistr: list[float]) -> float:
     return sum(lossDistr) / len(lossDistr)
+
+
+def findReconvergenceTime(rewDistr: list[float], target: float, threshold: int, timeThreshold: int):
+    lower: float = target - threshold
+    upper: float = target + threshold
+    stack: list[float] = []
+    timesteps: int = 0
+    for n in rewDistr:
+        timesteps += 1
+        if (lower <= n <= upper):
+            stack.append(n)
+        else:
+            stack.clear()
+
+        if (len(stack) == timeThreshold):
+            return timesteps
+    return None
