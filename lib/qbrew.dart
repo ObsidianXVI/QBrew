@@ -18,14 +18,14 @@ enum ActionSelectionPolicy {
 }
 
 const int totalEpochs = 4;
-const int epochSize = 1000; // 1000
+const int epochSize = 1500; // 1000
 const int episodeSize = 40; // 40
 const int totalTimesteps = episodeSize * epochSize * totalEpochs;
 const double epsilonDecayRate = -0.000001;
 
 void main(List<String> args) async {
   final Dataset dataset1 = Dataset(
-    label: 'SM_D2',
+    label: 'EG_D3',
   );
 
   await dataset1.batchRun(
@@ -40,7 +40,7 @@ void main(List<String> args) async {
       noiseAdjustments: [-3, -2, -1, 1, 2, 3],
       noisinessFactor: 0.8,
     ),
-    createAgent: (Environment env, Logger logger) => softmaxAgent1(env, logger),
+    createAgent: (Environment env, Logger logger) => epsilonAgent1(env, logger),
     createLogger: () => Logger(
       liveReporting: false,
       monitoredFeatures: {'reward': (tl) => tl.reward},
