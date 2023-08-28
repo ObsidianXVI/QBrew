@@ -8,8 +8,12 @@ def isWithinLossThreshold(loss: float, threshold: float) -> bool:
 
 def normaliseLossDistr(lossDistr: list[float]) -> list[float]:
     normalisedDistr: list[float] = []
-    min: float = lossDistr[0]
-    max: float = lossDistr[-1]
+    min_val: float = min(lossDistr)
+    max_val: float = max(lossDistr)
     for n in lossDistr:
-        normalisedDistr.append((n-min)/(max-min))
+        normalisedDistr.append((n-min_val)/(max_val-min_val))
     return normalisedDistr
+
+
+def findMeanSquaredError(lossDistr: list[float]) -> float:
+    return sum(lossDistr) / len(lossDistr)
