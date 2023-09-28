@@ -1,3 +1,6 @@
+import scipy.integrate as integrate
+
+
 def calculateLoss(reward: float, target: float) -> float:
     return pow(reward-target, 2)
 
@@ -49,3 +52,10 @@ def computeValueAtRisk(lossDistr: list[float], timestepDistr: list[float], confi
             break
 
     return lossDistr[index], index
+
+
+def computeConditionalVAR(lossDistr: list[float], timestepDistr: list[float], confidence: int) -> float:
+    confidenceDec: float = confidence / 100
+    integral: float = integrate.quad(lambda x: computeValueAtRisk(
+        lossDistr, timestepDistr, int(x * 100))[0], confidenceDec, 1)
+    return (1/(1-confidenceDec)) * float(integral[0])
