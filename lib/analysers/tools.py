@@ -35,5 +35,17 @@ def findReconvergenceTime(rewDistr: list[float], target: float, threshold: int, 
             return timesteps
     return None
 
+
 def sortLossDistr(lossDistr: list[float]) -> list[float]:
     return sorted(lossDistr, reverse=True)
+
+
+def computeValueAtRisk(lossDistr: list[float], timestepDistr: list[float], confidence: int) -> tuple[float, int]:
+    interval: int = 100 - confidence
+    index: int = -1
+    for t in timestepDistr:
+        index += 1
+        if (round(t * 100) == interval):
+            break
+
+    return lossDistr[index], index
