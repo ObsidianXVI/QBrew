@@ -6,7 +6,7 @@ def isWithinLossThreshold(loss: float, threshold: float) -> bool:
     return loss < threshold
 
 
-def normaliseLossDistr(lossDistr: list[float]) -> list[float]:
+def normaliseDistr(lossDistr: list[float]) -> list[float]:
     normalisedDistr: list[float] = []
     min_val: float = min(lossDistr)
     max_val: float = max(lossDistr)
@@ -34,3 +34,6 @@ def findReconvergenceTime(rewDistr: list[float], target: float, threshold: int, 
         if (len(stack) == timeThreshold):
             return timesteps
     return None
+
+def sortLossDistr(lossDistr: list[float]) -> list[float]:
+    return sorted(lossDistr, reverse=True)
