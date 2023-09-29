@@ -25,26 +25,26 @@ const double epsilonDecayRate = -0.000001;
 
 void main(List<String> args) async {
   final Dataset dataset1 = Dataset(
-    label: 'SM_D5',
+    label: 'EG_D6',
   );
 
   await dataset1.batchRun(
     count: 3,
     createEnv: () => Environment(
       customerCountFunctions: [
-        linear_1,
-        linear_2,
-        quadratic_1,
-        cubic_1,
 /*         linear_1,
+        linear_2,
+        quadratic_1,
+        cubic_1, */
+        linear_1,
         quadratic_1,
         linear_2,
-        cubic_1, */
+        cubic_1,
       ],
       noiseAdjustments: [-3, -2, -1, 1, 2, 3],
       noisinessFactor: 0.8,
     ),
-    createAgent: (Environment env, Logger logger) => softmaxAgent1(env, logger),
+    createAgent: (Environment env, Logger logger) => epsilonAgent1(env, logger),
     createLogger: () => Logger(
       liveReporting: false,
       monitoredFeatures: {'reward': (tl) => tl.reward},
