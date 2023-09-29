@@ -1,0 +1,25 @@
+Name: configs
+
+############ Configuration
+=== Execution
+totalEpochs: 4
+epochSize: 1500
+episodeSize: 40
+epsilonDecayRate: -0.000001
+
+=== Agent
+policy: ActionSelectionPolicy.softMax
+alpha: 0.2
+gamma: 0.9
+epsilon: 0.0
+
+=== Environment
+Noise adjustments: [-3, -2, -1, 1, 2, 3]
+Noisiness factor: 0.8
+
+############ Results
+=== Risk
+CVaR: 
+
+=== Responsiveness
+TTC: 
