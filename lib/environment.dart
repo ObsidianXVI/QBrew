@@ -22,12 +22,18 @@ class Environment {
     return customers * drinkPrice;
   }
 
+  /// Computes the new number of customers patronising the cafe at the given
+  /// price of [currentPrice]
   int computeCustomerCount(double currentPrice) {
+    // currentFn is the current demand function being used by env
     final int newCustomerCount = currentFn(currentPrice);
+    // generate a random decimal between 0 and 1
     final double randDbl = _random.nextDouble();
     if (randDbl > noisinessFactor) {
+      // return the exact new customer count if above the threshold
       return newCustomerCount;
     } else {
+      // add random noise and return a slightly inaccurate count
       return newCustomerCount +
           noiseAdjustments[_random.nextInt(noiseAdjustments.length)];
     }

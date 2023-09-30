@@ -114,7 +114,6 @@ class QLAgent {
       final double randNum = _random.nextDouble();
 
       if (policy == ActionSelectionPolicy.epsilonGreedy) {
-        // epsilon cannot be const when it is decayed
         if (randNum < epsilon) {
           isRand = true;
           // find and perform a random action ("exploration")
