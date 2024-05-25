@@ -9,23 +9,32 @@ class Dataset {
 
   Dataset({
     required this.label,
-  }) : dirPath = "./data/archives/datasets/$label";
+    String dir = "./data/archives/datasets/",
+  }) : dirPath = "$dir$label";
 
   Future<void> batchRun({
     required int count,
     required Environment Function() createEnv,
     required QLAgent Function(Environment, Logger) createAgent,
     required Logger Function() createLogger,
+    bool exportData = true,
+    Duration? timeout,
   }) async {
+    final Stopwatch stopwatch = Stopwatch();
     Environment? env;
     Logger? logger;
     QLAgent? agent;
+    if (timeout != null) stopwatch.start();
     for (int i = 0; i < count; i++) {
       env = createEnv();
       logger = createLogger();
       agent = createAgent(env, logger);
       agent.start();
-      dataBlocks.add(await logger.exportDataCSV('data_$i', dirPath));
+      dataBlocks.add(
+        exportData
+            ? await logger.exportDataCSV('data_$i', dirPath)
+            : logger.csvData,
+      );
     }
     if (count > 0) {
       await Logger.exportConfigsFile(
@@ -37,7 +46,7 @@ class Dataset {
     }
   }
 
-  Future<void> exportRangeCSV() async {
+  Future<Map<String, List>> exportRangeCSV({bool exportData = true}) async {
     final Map<String, List> rangeCSV = {
       'timeStep': [],
       'rmax': [],
@@ -59,7 +68,6 @@ class Dataset {
           rewardsAtTimestep.reduce((a, b) => a + b) / rewardsAtTimestep.length);
     }
 
-    final File dataFile = await File("$dirPath/range.csv").create();
     final List<String> headers = rangeCSV.keys.toList();
     final int rowCount = rangeCSV['timeStep']!.length;
     final List<String> data = [];
@@ -71,6 +79,10 @@ class Dataset {
       }
       data.add(rowData.join(';'));
     }
-    dataFile.writeAsString(data.join('\n'));
+    if (exportData) {
+      final File dataFile = await File("$dirPath/range.csv").create();
+      dataFile.writeAsString(data.join('\n'));
+    }
+    return rangeCSV;
   }
 }

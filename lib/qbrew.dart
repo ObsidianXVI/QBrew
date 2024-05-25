@@ -1,5 +1,6 @@
 library qbrew;
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
@@ -18,41 +19,133 @@ enum ActionSelectionPolicy {
 }
 
 const int totalEpochs = 4;
-const int epochSize = 1500; // 1000
+const int epochSize = 1500; // 1500
 const int episodeSize = 40; // 40
 const int totalTimesteps = episodeSize * epochSize * totalEpochs;
 const double epsilonDecayRate = -0.000001;
+const double eps = 0.8; //0.8
+const double gam = 0.9; //0.9
+const double alp = 0.2; // 0.2
 
 void main(List<String> args) async {
-  final Dataset dataset1 = Dataset(
-    label: 'EG_D6',
+  final Map<List<double>, double> grid = {};
+  for (double e = 1; e > 0; e -= 0.1) {
+    print("  e = $e");
+    for (double g = 1; g > 0; g -= 0.1) {
+      print("      g = $g");
+      for (double a = 0.1; a < 1; a += 0.1) {
+        print("        a = $a");
+        try {
+          final Dataset dataset1 = Dataset(
+            label: 'EG_T1',
+            dir: "./data/archives/datasets/tuning/",
+          );
+
+          await dataset1
+              .batchRun(
+                exportData: false,
+                count: 2, // 2
+                createEnv: () => Environment(
+                  customerCountFunctions: [
+                    linear_1,
+                    linear_2,
+                    quadratic_1,
+                    cubic_1,
+/*         linear_1,
+        quadratic_1,
+        linear_2,
+        cubic_1, */
+                  ],
+                  noiseAdjustments: [-3, -2, -1, 1, 2, 3],
+                  noisinessFactor: 0.8,
+                ),
+                createAgent: (Environment env, Logger logger) => QLAgent(
+                  env: env,
+                  qTable: {},
+                  logger: logger,
+                  actionSelectionPolicy: ActionSelectionPolicy.epsilonGreedy,
+                  epsilon: e,
+                  gamma: g,
+                  alpha: a,
+                ),
+                createLogger: () => Logger(
+                  liveReporting: false,
+                  monitoredFeatures: {'reward': (tl) => tl.reward},
+                  loggingCondition: (tl) => true,
+                ),
+              )
+              .timeout(const Duration(seconds: 60));
+          final rangeCSV = await dataset1.exportRangeCSV(exportData: false);
+          grid[[e, g, a]] =
+              (rangeCSV['ravg'] as List).fold(0.0, (a, b) => a + b) /
+                  (rangeCSV['timeStep'] as List).last;
+        } on TimeoutException {
+          print("          SKIPPED");
+          continue;
+        }
+      }
+    }
+  }
+  final File f =
+      (await File("./data/archives/datasets/tuning/EG_T1.csv").create());
+
+  final List<String> headers = ['epsilon', 'gamma', 'alpha', 'ravg'];
+  final int rowCount = grid.length;
+  final List<String> data = [];
+  data.add(headers.join(';'));
+  final Iterable<MapEntry<List<double>, double>> gridEntries = grid.entries;
+  for (int i = 0; i < rowCount; i++) {
+    final List rowData = [];
+
+    rowData.addAll([
+      gridEntries.elementAt(i).key.toList().join(';'),
+      gridEntries.elementAt(i).value
+    ]);
+
+    data.add(rowData.join(';'));
+  }
+  print(grid.entries.first.key);
+
+  await f.writeAsString(data.join('\n'));
+  print("EG TUNING DONE");
+
+  /* final Dataset dataset1 = Dataset(
+    label: 'EG_bench',
+    dir: "./data/archives/datasets/test/",
   );
 
   await dataset1.batchRun(
     count: 3,
     createEnv: () => Environment(
       customerCountFunctions: [
-/*         linear_1,
-        linear_2,
-        quadratic_1,
-        cubic_1, */
         linear_1,
+        linear_2,
+        quadratic_1,
+        cubic_1,
+/*         linear_1,
         quadratic_1,
         linear_2,
-        cubic_1,
+        cubic_1, */
       ],
       noiseAdjustments: [-3, -2, -1, 1, 2, 3],
       noisinessFactor: 0.8,
     ),
-    createAgent: (Environment env, Logger logger) => epsilonAgent1(env, logger),
+    createAgent: (Environment env, Logger logger) => QLAgent(
+      env: env,
+      qTable: {},
+      logger: logger,
+      actionSelectionPolicy: ActionSelectionPolicy.softMax,
+      epsilon: eps,
+      gamma: gam,
+      alpha: alp,
+    ),
     createLogger: () => Logger(
       liveReporting: false,
       monitoredFeatures: {'reward': (tl) => tl.reward},
       loggingCondition: (tl) => true,
     ),
   );
-  await dataset1.exportRangeCSV();
-
+  await dataset1.exportRangeCSV(); */
   // await logger.exportFullTestArchive('SM_D1_3', env: env, agent: agent);
 }
 
